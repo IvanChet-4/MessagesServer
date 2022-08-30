@@ -60,8 +60,8 @@ public class Server {
                                 }
                             }catch (Exception e){
                                 System.out.println("Клиент отключился");
-                                sendOnlineUsers();
                                 users.remove(currentUser);
+                                sendOnlineUsers();
                             }
                         }
                     });
