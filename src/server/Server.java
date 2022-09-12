@@ -11,10 +11,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
@@ -54,8 +51,8 @@ public class Server {
 
                                 //"{login: "ivan@mail.ru", pass: "123"}"
                                 JSONParser jsonParser = new JSONParser();
-
                                 boolean isAuth = false;
+                                String name ="";
 
                                 while(!isAuth) {
                                     String result = "error";
@@ -74,14 +71,18 @@ public class Server {
                                     }else{
                                         resultSet = statement.executeQuery("SELECT * FROM users WHERE token='" + tokenFromUser + "'");
                                     }
+
                                     JSONObject jsonObject = new JSONObject();
                                     if (resultSet.next()){
+                                        //Если совпал логин и пароль
                                         int id = resultSet.getInt("id");
+                                        name = resultSet.getString("name");
+                                        currentUser.setId(id);
                                         isAuth = true;
                                         result ="succses";
                                         String token = UUID.randomUUID().toString();
                                         statement.executeUpdate("UPDATE users SET token='"+token+"' WHERE id='"+id+"'");
-                                    jsonObject.put("token", token);
+                                        jsonObject.put("token", token);
                                     }
 
 
@@ -90,16 +91,17 @@ public class Server {
                                    System.out.println(result);
                                 }
 
+                              //  JSONObject jsonObject =new JSONObject();
+                          //      jsonObject.put("msg", "Введите имя: " + "\n");
+                               // currentUser.getOut().writeUTF(jsonObject.toJSONString());
 
 
-                                JSONObject jsonObject =new JSONObject();
-                                jsonObject.put("msg", "Введите имя: " + "\n");
-                                currentUser.getOut().writeUTF(jsonObject.toJSONString());
-                                String name = currentUser.getIs().readUTF();
                                 currentUser.setName(name);
                                 sendOnlineUsers();
+                                sendHistoryChat(currentUser);
 
                                 while (true){
+                                    JSONObject jsonObject = new JSONObject();
                                     String message = currentUser.getIs().readUTF();
                                     if (message.equals("/getOnlineUsers")) {
                                         JSONObject jsonObjectOnlineUsers = new JSONObject();
@@ -110,11 +112,19 @@ public class Server {
                                         jsonObjectOnlineUsers.put("users", jsonArray);
                                         currentUser.getOut().writeUTF(jsonObjectOnlineUsers.toJSONString());
                                     }else
+
+                                    {
+                                        Statement statement = connection.createStatement();
+                                        int id = currentUser.getId();
+                                        JSONObject jsonMessage = (JSONObject) jsonParser.parse(message);
+                                        String msg = jsonMessage.get("msg").toString();
+                                        statement.executeUpdate("INSERT INTO `messages` (`msg`,`from_id`) VALUES ('"+message+"','"+id+"')");
                                         for (User user:users) {
                                             System.out.println(message.toUpperCase(Locale.ROOT));
-                                            jsonObject.put("msg", name + ": "+ message);
+                                            jsonObject.put("msg", name + ": " + message);
                                             if (!user.getUuid().toString().equals(currentUser.getUuid().toString()))
                                                 user.getOut().writeUTF(jsonObject.toJSONString());
+                                        }
                                         }
                                 }
                             }catch (Exception e){
@@ -131,6 +141,28 @@ public class Server {
                 e.printStackTrace();
             }
         }
+
+
+        public static void sendHistoryChat(User user) throws Exception {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT users.id, users.name, messages.msg FROM users, messages WHERE users.id = messages.from_id AND to_id=0");
+  JSONObject jsonObject = new JSONObject();
+  JSONArray messages = new JSONArray();
+  while(resultSet.next()){
+      JSONObject message = new JSONObject();
+      message.put("name",resultSet.getString("name"));
+      message.put("user_id",resultSet.getInt("id"));
+      message.put("msg",resultSet.getString("msg"));
+      messages.add(message);
+  }
+  jsonObject.put("messages",messages);
+  user.getOut().writeUTF(jsonObject.toJSONString());
+    }
+
+
+
+
+
         public static void sendOnlineUsers() {
             JSONArray userList = new JSONArray();
             for (User user:users) {

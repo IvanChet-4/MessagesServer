@@ -13,6 +13,7 @@ public class User {
     private DataInputStream is;
     private String name;
     private UUID uuid;
+    private int id;
 
     public User(Socket socket) throws IOException {
         this.socket = socket;
@@ -39,5 +40,13 @@ public class User {
 
     public UUID getUuid() {
         return uuid;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
     }
 }
