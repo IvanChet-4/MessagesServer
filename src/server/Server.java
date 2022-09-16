@@ -54,6 +54,7 @@ public class Server {
                                 boolean isAuth = false;
                                 String name ="";
 
+
                                 while(!isAuth) {
                                     String result = "error";
 
@@ -103,6 +104,7 @@ public class Server {
                                 while (true){
                                     JSONObject jsonObject = new JSONObject();
                                     String message = currentUser.getIs().readUTF();
+                                    JSONObject jsonMessage = (JSONObject) jsonParser.parse(message);
                                     if (message.equals("/getOnlineUsers")) {
                                         JSONObject jsonObjectOnlineUsers = new JSONObject();
                                         JSONArray jsonArray = new JSONArray();
@@ -111,14 +113,35 @@ public class Server {
                                         }
                                         jsonObjectOnlineUsers.put("users", jsonArray);
                                         currentUser.getOut().writeUTF(jsonObjectOnlineUsers.toJSONString());
-                                    }else
+                                    }else if (jsonMessage.get("getHistoryMessage") !=null){
+int toId = Integer.parseInt(jsonMessage.get("getHistoryMessage").toString());
+int fromId = currentUser.getId();
+                                        Statement statement = connection.createStatement();
+                                        ResultSet resultSet = statement.executeQuery("SELECT * FROM messages WHERE from_id = '"+fromId+"' and  to_id = '"+toId+"' or  from_id = '"+toId+"' and  to_id = '"+fromId+"'");
+                                    JSONArray jsonMessages = new JSONArray();
+
+                                        while (resultSet.next()){
+                                            JSONObject singleJsonMessage = new JSONObject();
+                                            singleJsonMessage.put("msg", resultSet.getString("msg"));
+                                            jsonMessages.add(singleJsonMessage);
+
+
+                                        }
+                                        JSONObject jsonResult = new JSONObject();
+                                        jsonResult.put("privateMessages",jsonMessages);
+
+                                        currentUser.getOut().writeUTF(jsonResult.toJSONString());
+                                    }
+
+
+                                    else
 
                                     {
                                         Statement statement = connection.createStatement();
                                         int id = currentUser.getId();
-                                        JSONObject jsonMessage = (JSONObject) jsonParser.parse(message);
                                         String msg = jsonMessage.get("msg").toString();
-                                        statement.executeUpdate("INSERT INTO `messages` (`msg`,`from_id`) VALUES ('"+message+"','"+id+"')");
+                                        int toId = Integer.parseInt(jsonMessage.get("to_id").toString());
+                                        statement.executeUpdate("INSERT INTO `messages` (`msg`,`from_id`, `to_id`) VALUES ('"+message+"','"+id+"','"+toId+"'");
                                         for (User user:users) {
                                             System.out.println(message.toUpperCase(Locale.ROOT));
                                             jsonObject.put("msg", name + ": " + message);
@@ -168,6 +191,7 @@ public class Server {
             for (User user:users) {
                 JSONObject jsonUserInfo = new JSONObject();
                 jsonUserInfo.put("name", user.getName());
+                jsonUserInfo.put("id", user.getId());
                 userList.add(jsonUserInfo);
             }
 
