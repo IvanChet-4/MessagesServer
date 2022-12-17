@@ -25,27 +25,21 @@ public class User {
     public void setName(String name) {
         this.name = name;
     }
-
     public DataOutputStream getOut() {
         return out;
     }
-
     public DataInputStream getIs() {
         return is;
     }
-
     public String getName() {
         return name;
     }
-
     public UUID getUuid() {
         return uuid;
     }
-
     public void setId(int id) {
         this.id = id;
     }
-
     public int getId() {
         return id;
     }
