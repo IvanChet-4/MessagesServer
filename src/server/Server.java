@@ -17,7 +17,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 public class Server {
-    static ArrayList<User> users = new ArrayList<>();
+    static ArrayList < User > users = new ArrayList < > ();
     static String db_url = Constant.db_url;
     static Connection connection;
 
@@ -44,9 +44,9 @@ public class Server {
                             JSONParser jsonParser = new JSONParser();
 
                             /*Авторизация подключенного клиента*/
-                            boolean isAuth = false;//Переменная авторизации
+                            boolean isAuth = false; //Переменная авторизации
                             String name = "";
-                            while (!isAuth) {//Цикл авторизации, пока не введут правильные значения
+                            while (!isAuth) { //Цикл авторизации, пока не введут правильные значения
                                 String result = "error";
                                 String userData = currentUser.getIs().readUTF();
                                 JSONObject authData = (JSONObject) jsonParser.parse(userData);
@@ -59,7 +59,7 @@ public class Server {
                                 if (tokenFromUser.equals("")) {
                                     resultSet = statement.executeQuery("SELECT * FROM users WHERE login='" + login + "' AND pass='" + pass + "'");
                                 } else {
-                                    resultSet = statement.executeQuery("SELECT * FROM users WHERE token='" + tokenFromUser + "'");//Возможность авторизации по токену отключена (т.к. клиенты запускались на одном ПК, а токен был в файле на этом ПК)
+                                    resultSet = statement.executeQuery("SELECT * FROM users WHERE token='" + tokenFromUser + "'"); //Возможность авторизации по токену отключена (т.к. клиенты запускались на одном ПК, а токен был в файле на этом ПК)
                                 }
                                 JSONObject jsonObject = new JSONObject();
                                 if (resultSet.next()) {
@@ -69,31 +69,31 @@ public class Server {
                                     currentUser.setId(id);
                                     isAuth = true;
                                     result = "succses";
-                                    String token = UUID.randomUUID().toString();//Все что связано с токеном отключено
+                                    String token = UUID.randomUUID().toString(); //Все что связано с токеном отключено
                                     statement.executeUpdate("UPDATE users SET token='" + token + "' WHERE id='" + id + "'");
                                     jsonObject.put("token", token);
                                 }
                                 jsonObject.put("authResult", result);
                                 currentUser.getOut().writeUTF(jsonObject.toJSONString());
-                                System.out.println(result);//Результат авторизации
+                                System.out.println(result); //Результат авторизации
                             }
                             currentUser.setName(name);
-                            sendOnlineUsers();//Отображаем подключенных клиентов
-                            sendHistoryChat(currentUser);//Подгружаем историю чата из БД
+                            sendOnlineUsers(); //Отображаем подключенных клиентов
+                            sendHistoryChat(currentUser); //Подгружаем историю чата из БД
 
                             /*Работа сервера с клиентом*/
                             while (true) {
                                 JSONObject jsonObject = new JSONObject();
-                                String message = currentUser.getIs().readUTF();//Считываем сообщение клиента
+                                String message = currentUser.getIs().readUTF(); //Считываем сообщение клиента
                                 JSONObject jsonMessage = (JSONObject) jsonParser.parse(message);
                                 if (message.equals("/getOnlineUsers")) {
                                     JSONObject jsonObjectOnlineUsers = new JSONObject();
                                     JSONArray jsonArray = new JSONArray();
-                                    for (User user : users) {
+                                    for (User user: users) {
                                         jsonArray.add(user.getName());
                                     }
                                     jsonObjectOnlineUsers.put("users", jsonArray);
-                                    currentUser.getOut().writeUTF(jsonObjectOnlineUsers.toJSONString());//Отправляем запакованный json клиенту
+                                    currentUser.getOut().writeUTF(jsonObjectOnlineUsers.toJSONString()); //Отправляем запакованный json клиенту
                                 } else if (jsonMessage.get("getHistoryMessage") != null) {
                                     int toId = Integer.parseInt(jsonMessage.get("getHistoryMessage").toString());
                                     int fromId = currentUser.getId();
@@ -107,14 +107,14 @@ public class Server {
                                     }
                                     JSONObject jsonResult = new JSONObject();
                                     jsonResult.put("privateMessages", jsonMessages);
-                                    currentUser.getOut().writeUTF(jsonResult.toJSONString());//Отправляем запакованный json клиенту
+                                    currentUser.getOut().writeUTF(jsonResult.toJSONString()); //Отправляем запакованный json клиенту
                                 } else {
                                     Statement statement = connection.createStatement();
                                     int id = currentUser.getId();
                                     String msg = jsonMessage.get("msg").toString();
                                     int toId = Integer.parseInt(jsonMessage.get("to_id").toString());
                                     statement.executeUpdate("INSERT INTO `messages` (`msg`,`from_id`, `to_id`) VALUES ('" + message + "','" + id + "','" + toId + "'");
-                                    for (User user : users) {
+                                    for (User user: users) {
                                         System.out.println(message.toUpperCase(Locale.ROOT));
                                         jsonObject.put("msg", name + ": " + message);
                                         if (!user.getUuid().toString().equals(currentUser.getUuid().toString()))
@@ -125,7 +125,7 @@ public class Server {
                         } catch (Exception e) {
                             System.out.println("Клиент отключился...\n");
                             users.remove(currentUser);
-                            sendOnlineUsers();//Обновляем список клиентов онлайн
+                            sendOnlineUsers(); //Обновляем список клиентов онлайн
                         }
                     }
                 });
@@ -157,7 +157,7 @@ public class Server {
     /*Отправляем список онлайн клиентов после события (при подключении или отключении другого клиента)*/
     public static void sendOnlineUsers() {
         JSONArray userList = new JSONArray();
-        for (User user : users) {
+        for (User user: users) {
             JSONObject jsonUserInfo = new JSONObject();
             jsonUserInfo.put("name", user.getName());
             jsonUserInfo.put("id", user.getId());
@@ -165,7 +165,7 @@ public class Server {
         }
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("users", userList);
-        for (User user : users) {
+        for (User user: users) {
             try {
                 user.getOut().writeUTF(jsonObject.toJSONString());
             } catch (Exception e) {
